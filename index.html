@@ -1,195 +1,139 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendário Minimalista</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #941B22; /* Fundo vermelho */
-            color: #EBE4DC; /* Cor do texto principal */
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .month-card {
-            background-color: #EBE4DC; /* Fundo do calendário */
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            max-width: 350px;
-        }
-        .calendar-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: center;
-        }
-        .calendar-table th, .calendar-table td {
-            padding: 8px 0;
-            border: 1px solid #c0b7af;
-        }
-        .calendar-table th {
-            background-color: #941B22;
-            color: #EBE4DC;
-            text-transform: uppercase;
-            font-size: 0.9em;
-        }
-        .holiday {
-            color: #fff;
-            background-color: #7A151A;
-            font-weight: bold;
-            position: relative;
-        }
-        .holiday::after {
-            content: attr(title);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 5px;
-            border-radius: 5px;
-            white-space: nowrap;
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .holiday:hover::after {
-            visibility: visible;
-            opacity: 1;
-        }
-        .today {
-            background-color: #EBE4DC;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Calendário do Mês</title>
+  <style>
+    body {
+      background-color: #941B22;
+      color: #EBE4DC;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #EBE4DC;
+      padding: 10px;
+      text-align: center;
+      height: 60px;
+      position: relative;
+    }
+    th {
+      background-color: rgba(235, 228, 220, 0.2);
+    }
+    .hoje {
+      background-color: #EBE4DC;
+      color: #941B22;
+      font-weight: bold;
+      border: 2px solid #EBE4DC;
+    }
+    .comemorativa {
+      background-color: rgba(235, 228, 220, 0.3);
+      font-weight: bold;
+      cursor: help;
+    }
+    /* Tooltip */
+    .comemorativa:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 110%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #EBE4DC;
+      color: #941B22;
+      padding: 5px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      font-size: 12px;
+      z-index: 1;
+      border: 1px solid #941B22;
+    }
+  </style>
 </head>
 <body>
+  <h1 id="mesAno"></h1>
+  <table id="calendario">
+    <thead>
+      <tr>
+        <th>Dom</th>
+        <th>Seg</th>
+        <th>Ter</th>
+        <th>Qua</th>
+        <th>Qui</th>
+        <th>Sex</th>
+        <th>Sáb</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-    <div id="calendar-container"></div>
+  <script>
+    // Datas comemorativas fixas nacionais
+    const datasComemorativas = {
+      "01/01": "Ano Novo",
+      "21/04": "Tiradentes",
+      "01/05": "Dia do Trabalho",
+      "07/09": "Independência do Brasil",
+      "12/10": "Nossa Senhora Aparecida / Dia das Crianças",
+      "02/11": "Dia de Finados",
+      "15/11": "Proclamação da República",
+      "25/12": "Natal"
+    };
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const calendarContainer = document.getElementById('calendar-container');
+    function gerarCalendario() {
+      const hoje = new Date();
+      const mes = hoje.getMonth();
+      const ano = hoje.getFullYear();
 
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth() + 1;
-        const currentDay = today.getDate();
+      const nomeMes = hoje.toLocaleString('pt-BR', { month: 'long' });
+      document.getElementById("mesAno").innerText = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)} de ${ano}`;
 
-        const holidays = {
-            '1-1': 'Confraternização Universal',
-            '4-21': 'Tiradentes',
-            '5-1': 'Dia do Trabalho',
-            '9-7': 'Independência do Brasil',
-            '10-12': 'Nossa Senhora Aparecida',
-            '11-2': 'Finados',
-            '11-15': 'Proclamação da República',
-            '12-25': 'Natal'
-        };
+      const primeiroDia = new Date(ano, mes, 1).getDay();
+      const ultimoDia = new Date(ano, mes + 1, 0).getDate();
 
-        function getEasterDate(year) {
-            const a = year % 19;
-            const b = Math.floor(year / 100);
-            const c = year % 100;
-            const d = Math.floor(b / 4);
-            const e = b % 4;
-            const f = Math.floor((b + 8) / 25);
-            const g = Math.floor((b - f + 1) / 3);
-            const h = (19 * a + b - d - g + 15) % 30;
-            const i = Math.floor(c / 4);
-            const k = c % 4;
-            const l = (32 + 2 * e + 2 * i - h - k) % 7;
-            const m = Math.floor((a + 11 * h + 22 * l) / 451);
-            const month = Math.floor((h + l - 7 * m + 114) / 31);
-            const day = ((h + l - 7 * m + 114) % 31) + 1;
-            return { month, day };
-        }
+      let dia = 1;
+      let html = "";
 
-        function getMovableHolidays(year) {
-            const easter = getEasterDate(year);
-            const easterDate = new Date(year, easter.month - 1, easter.day);
+      for (let i = 0; i < 6; i++) {
+        let linha = "<tr>";
+        for (let j = 0; j < 7; j++) {
+          if (i === 0 && j < primeiroDia) {
+            linha += "<td></td>";
+          } else if (dia > ultimoDia) {
+            linha += "<td></td>";
+          } else {
+            const dataStr = `${String(dia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}`;
+            let classe = "";
+            let tooltip = "";
 
-            const goodFriday = new Date(easterDate);
-            goodFriday.setDate(easterDate.getDate() - 2);
-
-            const carnival = new Date(easterDate);
-            carnival.setDate(easterDate.getDate() - 47);
-
-            const corpusChristi = new Date(easterDate);
-            corpusChristi.setDate(easterDate.getDate() + 60);
-
-            return {
-                [`${carnival.getMonth() + 1}-${carnival.getDate()}`]: 'Carnaval',
-                [`${goodFriday.getMonth() + 1}-${goodFriday.getDate()}`]: 'Sexta-feira Santa',
-                [`${corpusChristi.getMonth() + 1}-${corpusChristi.getDate()}`]: 'Corpus Christi'
-            };
-        }
-
-        function createMonthCard(year, month) {
-            const monthCard = document.createElement('div');
-            monthCard.classList.add('month-card');
-
-            const table = document.createElement('table');
-            table.classList.add('calendar-table');
-            table.innerHTML = `<thead><tr><th>Dom</th><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th></tr></thead><tbody></tbody>`;
-
-            const tableBody = table.querySelector('tbody');
-            const firstDay = new Date(year, month - 1, 1).getDay();
-            const daysInMonth = new Date(year, month, 0).getDate();
-
-            let dayCounter = 1;
-            let row = document.createElement('tr');
-            for (let i = 0; i < firstDay; i++) {
-                row.innerHTML += `<td></td>`;
+            if (dia === hoje.getDate()) {
+              classe = "hoje";
+            }
+            if (datasComemorativas[dataStr]) {
+              classe = classe ? classe + " comemorativa" : "comemorativa";
+              tooltip = `data-tooltip="${datasComemorativas[dataStr]}"`;
             }
 
-            const yearHolidays = { ...holidays, ...getMovableHolidays(year) };
-
-            while (dayCounter <= daysInMonth) {
-                if (row.children.length === 7) {
-                    tableBody.appendChild(row);
-                    row = document.createElement('tr');
-                }
-
-                const dayCell = document.createElement('td');
-                dayCell.textContent = dayCounter;
-
-                const holidayKey = `${month}-${dayCounter}`;
-                if (yearHolidays[holidayKey]) {
-                    dayCell.classList.add('holiday');
-                    dayCell.title = yearHolidays[holidayKey];
-                }
-
-                if (dayCounter === currentDay && month === currentMonth && year === currentYear) {
-                    dayCell.classList.add('today');
-                }
-
-                row.appendChild(dayCell);
-                dayCounter++;
-            }
-
-            while (row.children.length < 7) {
-                row.innerHTML += `<td></td>`;
-            }
-            tableBody.appendChild(row);
-
-            monthCard.appendChild(table);
-            calendarContainer.appendChild(monthCard);
+            linha += `<td class="${classe}" ${tooltip}>${dia}</td>`;
+            dia++;
+          }
         }
+        linha += "</tr>";
+        html += linha;
+      }
 
-        createMonthCard(currentYear, currentMonth);
-    });
-</script>
+      document.querySelector("#calendario tbody").innerHTML = html;
+    }
 
+    gerarCalendario();
+  </script>
 </body>
 </html>
-
-
-
